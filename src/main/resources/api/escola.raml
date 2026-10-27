@@ -1,0 +1,50 @@
+#%RAML 1.0
+title: raml-escola-exp
+version: v1
+mediaType: application/json
+
+uses:
+  types: libraries/types.raml
+  resourceTypes: libraries/resourceTypes.raml
+
+/aluno:
+  /{id}:
+    type:
+      resourceTypes.collection:
+        typeCollection: types.alunoResponse
+        exampleCollection: !include examples/aluno/response.json
+
+    uriParameters:
+      id:
+        type: string
+        required: true
+
+    get:
+      description: Busca um aluno pelo ID
+      responses:
+        200:
+          body:
+            application/json:
+              type: types.alunoResponse
+              example: !include examples/aluno/response.json
+
+        404:
+          description: Aluno não encontrado
+
+    put:
+      description: Atualiza um aluno pelo ID
+
+      body:
+        application/json:
+          type: types.alunoRequest
+          example: !include examples/aluno/request.json
+
+      responses:
+        200:
+          body:
+            application/json:
+              type: types.alunoResponse
+              example: !include examples/aluno/response.json
+
+        404:
+          description: Aluno não encontrado

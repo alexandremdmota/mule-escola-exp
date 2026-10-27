@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aluno",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "curso": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id"    
+  ]
+}

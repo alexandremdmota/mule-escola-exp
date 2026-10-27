@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config
+		name="escola-httpListenerConfig">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+	<apikit:config name="escola-config" api="escola.raml"
+		outboundHeadersMapName="outboundHeaders"
+		httpStatusVarName="httpStatus" />
+	<configuration-properties
+		file="configLocal.yaml" />
+	<flow name="escola-main">
+		<http:listener config-ref="escola-httpListenerConfig"
+			path="/*">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+		<apikit:router config-ref="escola-config" />
+		<error-handler>
+			<on-error-propagate type="APIKIT:BAD_REQUEST">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">400
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate type="APIKIT:NOT_FOUND">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate
+				type="APIKIT:METHOD_NOT_ALLOWED">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">405
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">406
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate
+				type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">415
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			<on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">501
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="escola-console">
+		<http:listener config-ref="escola-httpListenerConfig"
+			path="/console/*">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]">
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:response>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]">
+				<http:body>#[payload]</http:body>
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:error-response>
+		</http:listener>
+		<apikit:console config-ref="escola-config" />
+		<error-handler>
+			<on-error-propagate type="APIKIT:NOT_FOUND">
+				<ee:transform doc:name="Transform Message">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="put:\aluno\(id):application\json:escola-config">
+		<ee:transform doc:name="Transform Message">
+			<ee:variables>
+				<ee:set-variable variableName="id"><![CDATA[attributes.uriParams.'id'				]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<tracking:transaction doc:name="Set Transaction Id" doc:id="f0e26f40-7b7f-49a4-a700-260721065a0a" id='#[(payload.id as String) ++ "-" ++ uuid()]' />
+		<choice doc:name="Choice" doc:id="f356974c-6e6f-4057-9cad-d22d9283b728" >
+			<when expression="#[payload == null or isEmpty(payload)]">
+				<ee:transform doc:name="Transform Message">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: 123,
+  nome: "Alexandre",
+  curso: "MuleSoft"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="28027d54-5335-49bf-baff-ecc937b86c14" message="#[payload]" />
+			</otherwise>
+		</choice>
+		<set-variable
+			value="#[%dw 2.0&#10;output application/java&#10;---&#10;{&#10;    &quot;Host&quot;: Mule::p('request.server.sistema1.host'),&#10;    &quot;Port&quot;: Mule::p('request.server.port'),&#10;    &quot;Method&quot;: attributes.method,&#10;    &quot;Path&quot;: Mule::p('request.endpoint.sistema1.aluno.path'),&#10;    &quot;Endpoint&quot;: &quot;https://&quot; &#10;        ++ Mule::p('request.server.sistema1.host')&#10;        ++ Mule::p('request.endpoint.sistema1.aluno.path'),&#10;    &quot;Timeout&quot;: Mule::p('request.endpoint.sistema1.aluno.timeout'),&#10;    &quot;Retry&quot;: Mule::p('request.endpoint.sistema1.aluno.retry'),&#10;    &quot;Wait&quot;: Mule::p('request.endpoint.sistema1.aluno.wait'),&#10;    &quot;header&quot;: attributes.headers,&#10;    &quot;queryParams&quot;: attributes.queryParams,&#10;    &quot;uriParams&quot;: attributes.uriParams&#10;}]"
+			doc:name="Set Variable" doc:id="a202b506-f2b2-4352-98a6-cb10390a64a3"
+			variableName="dataSend" />
+		<choice doc:name="Choice"
+			doc:id="54fe9ebf-9217-482b-b725-9e4ac924be01">
+			<when
+				expression='#[upper((attributes.method default "") as String) == "PUT"]'>
+				<scatter-gather doc:name="Scatter-Gather"
+					doc:id="4473b291-a634-4f58-9f5c-950d8c6d30db">
+					<route>
+						<logger level="INFO" doc:name="Logger"
+							doc:id="6cd3c04f-f4da-4628-a83f-5a3af88cc5be"
+							message='#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ {&#10;    dataHora: now() as String {format: "yyyy-MM-dd HH:mm:ss"},&#10;    correlationId: correlationId&#10;}]' />
+						<set-variable value="#[payload]" doc:name="BKPaeloadpayload" doc:id="2fe63cb7-9a44-4c58-9d97-9a752f667711" variableName="BKpayload"/>
+						<set-payload
+							value="#[%dw 2.0
+output application/json
+---
+[1,2,3,4,5,6]]"
+							doc:name="Set Payload Lista"
+							doc:id="53b82696-5a3b-47c9-84b9-0518ab84bb51" />
+						<foreach doc:name="For Each" doc:id="42559c48-91a7-4a8d-9cf9-4f6e97b16f8b" collection="#[payload]">
+							<choice doc:name="Choice" doc:id="fae9eea1-3a49-4d47-9f18-7f2e2b42ad98">
+								<when expression="#[(payload mod 2) == 0]">
+									<set-variable value="#[output application/json&#10;---&#10;(vars.pares default []) ++ [payload]]" doc:name="Adicionar número par" doc:id="590c61c5-3015-4bdf-b8af-8dbba3418570" variableName="pares" />
+									<logger level="INFO" doc:name="Logger" doc:id="ed3c18cf-2097-40f7-80d8-76ca527a274f" message="#[payload]" />
+								</when>
+								<otherwise>
+									<set-variable value="#[output application/json&#10;---&#10;(vars.impar default []) ++ [payload]]" doc:name="Adicionar número Impar" doc:id="bde280bc-50cd-4d73-8627-54f0ac79709d" variableName="impar" />
+									<logger level="INFO" doc:name="Logger" doc:id="57219444-b332-4f1c-ae6d-1ea122ab6c57" />
+								</otherwise>
+							</choice>
+						</foreach>
+						<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;vars.BKpayload ++ { payload: payload}]" doc:name="Set Payload" doc:id="89da2c48-04cc-4f88-8d07-288baa33ac23" />
+					</route>
+					<route>
+						<set-payload
+							value="#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ { payload: payload}]"
+							doc:name="Set Payload"
+							doc:id="43d362ce-a7a5-4992-8044-b790b4335612" />
+						<logger level="INFO" doc:name="Logger"
+							doc:id="d06c6da6-5ff3-4e48-a6c5-cbb78afef6ee"
+							message='#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ {&#10;    dataHora: now() as String {format: "yyyy-MM-dd HH:mm:ss"},&#10;    correlationId: correlationId&#10;}]' />
+					</route>
+					<route>
+						<set-variable
+							value='#[output application/json&#10;---&#10;{&#10;Hora:now() as String {format: "yyyy-MM-dd HH:mm:ss"}&#10;&#10;}]'
+							doc:name="Set Variable"
+							doc:id="c40d3d61-fb79-4a38-938f-e83df94ba49e" variableName="Var2" />
+					</route>
+				</scatter-gather>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="a2c052ab-9dd2-4f55-9093-adee19bb1712" message="#[payload]" />
+			</otherwise>
+		</choice>
+		<flow-ref doc:name="Flow Reference" doc:id="18240d32-22ee-4271-8c23-e1509bb5ca2d" name="get:\aluno\(id):escola-config" target="novo"/>
+		<flow-ref doc:name="Flow Reference" doc:id="f8e5beed-6351-48ab-bdb5-0f6391c345f6" name="SubFlowTargetFlow" target="resultado" />
+		<ee:transform doc:name="Transform Message" doc:id="1dbe83f5-0493-4263-b8ba-29bc4a1cbfd0">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    (pares: vars.pares) if (!isEmpty(vars.pares default [])),
+    (impares: vars.impar) if (!isEmpty(vars.impar default [])),
+    (Nome: vars.resultado) if (!isEmpty(vars.resultado default "")),
+    Payload: payload,
+    (GetPayload: vars.novo) if (vars.novo != null)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<first-successful doc:name="First Successful" doc:id="87fbbc7d-8f19-46cf-9bc2-18871e89cf2e">
+			<route>
+				<logger level="INFO" doc:name="Logger" doc:id="d562180c-da84-4b6f-b549-968984a40828" />
+			</route>
+			<route >
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="751a56a6-2671-46d6-aced-46adc29fbb6e" />
+				<logger level="INFO" doc:name="Logger" doc:id="3bf5f01c-4f86-4c1a-b3d4-f08d85042bcc" />
+			</route>
+		</first-successful>
+		<logger level="INFO" doc:name="Logger"
+			doc:id="12fb4b1b-20db-4383-b59b-e86e2baf4959"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ {&#10;    dataHora: now() as String {format: "yyyy-MM-dd HH:mm:ss"},&#10;    correlationId: correlationId,&#10;    pares: vars.pares,&#10;    impares: vars.impar,&#10;    Variavel: vars.Var2,&#10;    Nome:vars.resultado,&#10;    payload: payload,&#10;    GetPayload: vars.novo&#10;}]' />
+	</flow>
+	<flow name="escolaFlow"
+		doc:id="0ddb80a2-5bcc-4dfa-ad2f-988e9a6df5a3">
+		<logger level="INFO" doc:name="Logger"
+			doc:id="9d14e480-5c73-4a26-9ae3-bf3320710819" />
+	</flow>
+	<flow name="get:\aluno\(id):escola-config" doc:id="7b05f185-8017-4845-92e7-de32aefe7030">
+		<ee:transform doc:name="Transform Message">
+			<ee:variables>
+				<ee:set-variable variableName="id">attributes.uriParams.'id'
+				</ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: 123,
+  nome: "Alexandre",
+  curso: "MuleSoft"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable
+			value="#[%dw 2.0&#10;output application/java&#10;---&#10;{&#10;    &quot;Host&quot;: Mule::p('request.server.sistema1.host'),&#10;    &quot;Port&quot;: Mule::p('request.server.port'),&#10;    &quot;Method&quot;: Mule::p('request.endpoint.sistema1.aluno.method'),&#10;    &quot;Path&quot;: Mule::p('request.endpoint.sistema1.aluno.path'),&#10;    &quot;Endpoint&quot;: &quot;http://&quot; &#10;        ++ Mule::p('request.server.sistema1.host')&#10;        ++ &quot;:&quot; &#10;        ++ Mule::p('request.server.port')&#10;        ++ Mule::p('request.endpoint.sistema1.aluno.path')&#10;        ++ ((attributes.uriParams.id default &quot;&quot;) as String),&#10;    &quot;Timeout&quot;: Mule::p('request.endpoint.sistema1.aluno.timeout'),&#10;    &quot;Retry&quot;: Mule::p('request.endpoint.sistema1.aluno.retry'),&#10;    &quot;Wait&quot;: Mule::p('request.endpoint.sistema1.aluno.wait'),&#10;    &quot;header&quot;: attributes.headers,&#10;    &quot;queryParams&quot;: attributes.queryParams,&#10;    &quot;uriParams&quot;: attributes.uriParams&#10;}]"
+			doc:name="Set Variable" doc:id="aac6ce51-35ec-474d-9fb6-657df572ac41"
+			variableName="dataSend" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="50483a0d-9040-4643-a83d-d61608e3216b"
+			message='#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ {&#10;    dataHora: now() as String {format: "yyyy-MM-dd HH:mm:ss"},&#10;    correlationId: correlationId&#10;}]' />
+		<set-payload
+			value="#[%dw 2.0&#10;output application/json&#10;---&#10;vars.dataSend ++ { payload: payload}]"
+			doc:name="Set Payload" doc:id="005fa8f5-4f9d-4027-9fcd-f92b2f65b2de" />
+	</flow>
+</mule>

@@ -1,0 +1,17 @@
+#%RAML 1.0 Library
+usage: Resource Types
+
+uses:
+  types: types.raml
+
+resourceTypes:
+  collection:
+    description: collection of <<resourcePathName>>
+    get?:
+      description: get a list of <<resourcePathName>>
+      responses:
+        200:
+          body:
+            application/json:
+              type: <<typeCollection>>
+              example: <<exampleCollection>>

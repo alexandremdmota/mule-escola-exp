@@ -1,0 +1,21 @@
+#Properties de ambiente, alteração mediante alinhamento.
+
+request:
+  server:
+    port: "8081"
+    sistema1:
+      host: "localhost"
+    sistema2:
+      host: "localhost:8081"
+      
+  endpoint:
+    sistema1:
+      aluno:
+        host: "localhost2"
+        method: "GET"
+        path: "/api/aluno/"
+        timeout: "60000"
+        wait: "3000"
+        retry: "0"
+        
+      
